@@ -1,5 +1,6 @@
 import {v2 as cloudinary} from "cloudinary";
 import fs from "fs";
+import {ApiError} from '../utils/apiError.js'
 
 cloudinary.config({ 
     cloud_name:process.env.CLOUDINARY_CLOUD_NAME , 
@@ -18,6 +19,7 @@ const uploadCloudinary = async function(localFilePath) {
         return result;
     } catch (error) {
         fs.unlinkSync(localFilePath);
+        throw new ApiError(500, 'Cloudinary upload failed')
         return null;
     }
 };
