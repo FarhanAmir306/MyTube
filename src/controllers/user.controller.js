@@ -360,7 +360,8 @@ const uploadCoverImage = asyncHandler(async (req, res) => {
     const coverImage = await uploadCloudinary(coverImageLocalPath)
     if(!coverImage.url) throw new ApiError(400,'Upload cover image failed')
     
-    //   TODO: delete oldImage  
+    //   TODO: delete oldImage 
+    //old imageUrl get then delete 
 
     // Update user cover image
     const updatedUser = await User.findByIdAndUpdate(
@@ -376,6 +377,73 @@ const uploadCoverImage = asyncHandler(async (req, res) => {
         
     return res.status(200).json(
         new ApiResponse(200,updatedUser,'Cover image uploaded successfully')
+    )
+})
+
+
+const getUserChannelProfile = asyncHandler(async(req,res)=>{
+
+    const {userName} = req.params 
+    if(!userName?.trim()){
+        throw new ApiError(400,'Please provide a valid username!')
+    }
+    const channel = await User.aggregate([
+        {
+            $match:{userName:userName.toLowerCase()}
+        },
+        {
+            $lookup:{
+                from: 'subscriptions',
+                localField: '_id',
+                foreignField: 'channel',
+                as:'subscribers'
+            }
+        },
+        {
+            $lookup:{
+                from: 'subscriptions',
+                localField: '_id',
+                foreignField: 'subscriber',
+                as:'subscribedTo'
+            }
+        },
+        {
+            $addFields:{
+                subscriberCount:{
+                    $size:'$subscribers'
+                },
+                channelIsSubscribedToCount:{
+                    $size:'$subscribedTo'
+                },
+                isSubscribed:{
+                   $cond:{
+                    if: {$in: [req.user?._id, '$subscribers.subscriber']},
+                    then:true,
+                    else:false
+                   }
+                }
+            }
+        },
+        {
+            $project:{
+                _id:1,
+                userName:1,
+                fullName:1,
+                email:1,
+                avatar:1,
+                coverImage:1,
+                subscriberCount:1,
+                channelIsSubscribedToCount:1,
+                isSubscribed:1
+            }
+        }
+    ])
+
+    if(!channel?.length){
+        throw new ApiError(404,'User not found!')
+    }
+    return res.status(200).json(
+        new ApiResponse(200,channel[0],'User channel profile fetched successfully')
     )
 })
 
