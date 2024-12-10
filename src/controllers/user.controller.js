@@ -2,7 +2,8 @@ import { User } from "../models/user.model.js";
 import { ApiError } from "../utils/apiError.js";
 import { ApiResponse } from "../utils/apiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { uploadCloudinary } from "../utils/cloudinary.js";
+import  uploadCloudinary  from "../utils/cloudinary.js";
+import mongoose from 'mongoose'
 
 
 // const  generateAccessTokenAndRefreshToken =async(userId)=>{
@@ -383,13 +384,13 @@ const uploadCoverImage = asyncHandler(async (req, res) => {
 
 const getUserChannelProfile = asyncHandler(async(req,res)=>{
 
-    const {userName} = req.params 
-    if(!userName?.trim()){
+    const {username} = req.params 
+    if(!username?.trim()){
         throw new ApiError(400,'Please provide a valid username!')
     }
     const channel = await User.aggregate([
         {
-            $match:{userName:userName.toLowerCase()}
+            $match:{userName:username.toLowerCase()}
         },
         {
             $lookup:{
@@ -447,6 +448,70 @@ const getUserChannelProfile = asyncHandler(async(req,res)=>{
     )
 })
 
+const getWatchHistory = asyncHandler(async(req,res)=>{
+
+    const user = await User.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:{
+                from:'videos',
+                localField:'watchHistory',
+                foreignField:'_id',
+                as:'watchHistory',
+
+                pipeline:[{
+                    $lookup:{
+                        from:"users",
+                        localField:'owner',
+                        foreignField:'_id',
+                        as:'owner',
+
+                        pipeline:[{
+                            $project:{
+                                fullName:1,
+                                userName:1,
+                                avatar:1
+                            }
+                        }]        
+                    }
+                }]
+            }
+        },
+        {
+            $addFields:{
+                // watchHistory: {
+                //     $map:{
+                //         input:'$watchHistory',
+                //         as:'watch',
+                //         in:{
+                //             _id:'$$watch._id',
+                //             title:'$$watch.title',
+                //             owner:{
+                //                 $arrayElemAt:['$$watch.owner',0]
+                //             },
+                //             createdAt:'$$watch.createdAt',
+                //             duration:'$$watch.duration'
+                //         }
+                //     }
+                // }
+
+                owner:{
+                    $first:"$owner"
+                }
+
+            }
+        }
+    ])
+
+    return res.status(200).json(
+        new ApiResponse(200,user[0].watchHistory,'User watch history fetched successfully')
+    )
+})
+
 export {
     UserRegister,
     LoginUser,
@@ -458,4 +523,6 @@ export {
     updateUserDetails,
     uploadAvatar,
     uploadCoverImage,
+    getWatchHistory,
+    getUserChannelProfile,
 }

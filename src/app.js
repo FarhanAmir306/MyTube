@@ -20,8 +20,18 @@ app.use(express.static('public')) // Nijer server e image pdf ext. egula rakhar 
 // import routes 
 
 import userRouter from './routes/user.route.js';
+import healthcheckRouter from "./routes/healthcheck.routes.js"
+import tweetRouter from "./routes/tweet.routes.js"
+// import subscriptionRouter from "./routes/subscription.routes.js"
+import videoRouter from "./routes/video.routes.js"
+import commentRouter from "./routes/comment.routes.js"
+import likeRouter from "./routes/like.routes.js"
+// import playlistRouter from "./routes/playlist.routes.js"
+// import dashboardRouter from "./routes/dashboard.routes.js"
+
 
 app.use('/api/v1/user',userRouter);
+
 
 
 // import database connection
